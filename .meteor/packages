@@ -1,0 +1,9 @@
+standard-app-packages
+iron:router
+bootswatch:sandstone
+meteorhacks:npm
+
+
+npm-container
+froatsnook:request
+aldeed:collection2

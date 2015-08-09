@@ -1,0 +1,800 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    
+    
+    <title>賽果及派彩 - 賽事資料 - 賽馬資訊 - 香港賽馬會</title>
+<meta name="keywords" content="名次, 派彩, 頭馬距離, 頭馬時間, 完成時間, 分段時間, 沿途走位">
+<meta name="description" content=" ">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta content="02, 2015-Aug-08 12:30:12" name="trace" />
+    <link rel="SHORTCUT ICON" href="/racing/Info/StaticFile/Images/favicon.ico" />
+
+    <script type="text/javascript" src="/racing/Info/Scripts/jquery-1.4.1.min.js"></script>
+
+    <script type="text/javascript" src="/racing/Info/Scripts/MicrosoftAjax.min.js"></script>
+
+    <script type="text/javascript" src="/racing/Info/Scripts/MicrosoftMvcAjax.min.js"></script>
+
+    <script type="text/javascript" src="/racing/Info/Scripts/ImgRollover.min.js"></script>
+
+    <script language="javascript" type="text/javascript">var HkjcWebUrl = 'http://www.hkjc.com';
+var JcrwUrlPrefix = '/racing/Info';
+var ajaxBeforeSendTip = '<div style="font-size:14px; font-weight:bold; text-align:center;">處理中...</div><br/>';
+var ajaxErrorTip = '<div style="font-size:14px; font-weight:bold; text-align:center;">網絡或系統繁忙，請稍後再作嘗試，不便之處敬請原諒。</div><br/>';
+var jsController = 'race';
+var jsAction = 'results';
+var jsJcerwWebUrl = 'http://racing.hkjc.com/racing/info';
+var jsJCRWDomainIP = 'racing.hkjc.com';
+var jsJCEWDomainIP = 'www.hkjc.com';
+var curIsEnglish = false;
+var curIsSimulcast = false;
+var wcmsUrlPrefix = 'http://racing.hkjc.com/racing/overseas';
+var preUrl = 'http://racing.hkjc.com/racing/Info/meeting/Results/Chinese/';
+var maxRetryCount = 4;
+var delayTime = '2000';
+var JcrwSSOPath = '//racing.hkjc.com/racing/jcrw/';
+var SSOCommonPath = '//common.hkjc.com/corporate/';
+var SearchPath = '//search.hkjc.com';
+var hidePanel = false;
+var JCRWSystemCutoffDate = '20110815';
+var PageIsReady = true;
+</script>
+
+    <script type="text/javascript">
+        var curStatus = null;
+
+        function toggleLang() {
+            var curURL = document.URL;  //document.location.href;
+            if (arguments.length > 0) {
+                curURL = arguments[0];
+            }
+
+            var reg = new RegExp('(.*\\/' + jsAction + ')(\\/English|\\/Chinese)?(\\/.*)?', 'i');
+            var idx = curURL.match(reg);
+            if (idx != null) {
+                var urlPrefix = RegExp.$1;
+                var urlLang = RegExp.$2;
+                var urlPara = RegExp.$3;
+                if (urlLang == null || urlLang == '' || urlLang.toLowerCase() == '/chinese') {
+                    urlLang = '/English';
+                }
+                else {
+                    urlLang = '/Chinese';
+                }
+                curURL = urlPrefix + urlLang + urlPara;
+            }
+
+            $("#topNav a.lang").attr("href", curURL);
+        }
+
+        function ajaxNav(url) {
+            $.ajax({
+                url: url,
+                data: { "X-Requested-With": "XMLHttpRequest" },
+                type: "POST",
+                dataType: "html",
+                beforeSend: function() {
+                    $('#' + jsAction).html(ajaxBeforeSendTip);
+                },
+                error: function() {
+                    //ajax error
+                    $('#' + jsAction).html(ajaxErrorTip);
+                },
+                success: function(data) {
+                    $('#' + jsAction).html(data);
+                    //for change the language
+                    toggleLang(url);
+                    //for Image roll over
+                    rolloverInit();
+
+                    //not ready for ajax loading
+                    if ($('.mainError').length > 0) {
+
+                        curStatus = $("#hidStatus").val();
+                        if (curStatus == "NOTREADY") {
+                            window.location = url; //refresh the url and use reload approach                                                
+                        } else { //ERROR or ...
+                            $(".mainError").show();
+                            if (curIsSimulcast) {
+                                changeIFrameSize("sysdata_iframe");
+                            }
+                        }
+
+                    } //endif
+                }
+            });
+        }
+
+        //http://developer.yahoo.com/performance/rules.html
+        //Get vs. Post
+
+        function AutoReload(retryCount) {
+            if (retryCount < maxRetryCount) {
+                Reload = setTimeout(function() {
+                    $.ajax({
+                        cache: false,
+                        url: preUrl,
+                        type: "POST",
+                        dataType: "html",
+                        error: function() {
+                            //ajax error
+                            $("#loading").hide();
+                            $('#' + jsAction).html(ajaxErrorTip);
+                        },
+                        success: function(data) {
+                            if (data.indexOf("mainError") > 0 && data.indexOf('Redirect') <= 0) {
+                                if (data.indexOf('value="ERROR"') > 0) {
+                                    retryCount = maxRetryCount;
+                                }
+                                AutoReload(retryCount + 1);
+
+                            } else {
+                                //reset the retry count
+                                retryCount = 0;
+
+                                //Data is OK,  and display it!;
+                                //Fix the invalidation of js function after update by Ajax
+                                window.location = preUrl;
+                            }
+                        }
+                    });
+                }, delayTime);
+            } else {
+                if (curStatus == "NOTREADY") {
+                    $(".retryLink").show();
+                }
+
+                $("#loading").hide();
+                if (hidePanel) {
+                    $("#divRemark").show();
+                } else {
+                    $(".mainError").show();
+                    if (curIsSimulcast) {
+                        changeIFrameSize("sysdata_iframe");
+                    }
+                }
+                if (parent.document.location.href.toLowerCase().indexOf(wcmsUrlPrefix) < 0) {
+                    try {
+                        WATracker.trackPageView('racing-content');
+                    } catch (e) {
+                    }
+                }
+            }
+        }
+    </script>
+
+</head>
+<body topmargin='0' leftmargin='0'>
+    
+
+<script type="text/javascript" src="/racing/Info/GlobalMenu/Chinese/js/global.js"></script>
+<script type="text/javascript" src="/racing/Info/GlobalMenu/Chinese/js/section-home.js"></script>
+
+<link rel="stylesheet" type="text/css" href="/racing/Info/Content/CommonStyle.min.css" />
+<link rel="stylesheet" type="text/css" href="/racing/Info/Content/Chinese/div.min.css" />
+
+<link rel="stylesheet" type="text/css" href="/racing/Info/GlobalMenu/Chinese/css/global.css" />
+<link rel="stylesheet" type="text/css" href="/racing/Info/Chinese/revamp/css/jcrw_global.css" />
+<link rel="stylesheet" type="text/css" href="/racing/Info/Chinese/revamp/css/jcrw_racing.css" />
+<!--[if lte IE 6]><link rel="stylesheet" type="text/css" href="/racing/Info/Chinese/revamp/css/global_ie6.css" /><![endif]-->
+<!-- For Local pages -->
+
+<div id="mainContainer">
+    <!--	
+	This header file is transformed from WCMS version 20 Jan 2012
+-->
+<!--<script src="//common.hkjc.com/wa/wa_tracker.js" type="text/javascript"></script>-->
+<!-- <script type="text/javascript" src="/racing/common/english/js/globallogin.js"></script>	   -->
+<!-- Replaced by jcrw_sso.js-->
+
+<script type="text/javascript" language="javascript">
+    var str = '';
+    str += '<scr' + 'ipt src="' + SearchPath  + '/search/common/english/js/specialChar.js" type="text/javascr' + 'ipt"></scr' + 'ipt>';
+    str += '<scr' + 'ipt src="' + SearchPath  + '/search/common/english/js/b64.min.js" type="text/javascr' + 'ipt"></scr' + 'ipt>';
+    str += '<scr' + 'ipt src="' + SSOCommonPath + 'scripts/customer_profile.min.js" type="text/javascr' + 'ipt"></scr' + 'ipt>';
+    str += '<scr' + 'ipt src="' + SSOCommonPath + 'scripts/jquery-1.4.1.min.js" type="text/javascr' + 'ipt"></scr' + 'ipt>';
+    str += '<scr' + 'ipt src="' + SSOCommonPath + 'scripts/jquery.jsonp-2.1.3.min.js" type="text/javascr' + 'ipt"></scr' + 'ipt>';
+    str += '<scr' + 'ipt src="' + SSOCommonPath + 'scripts/SSOCore.js" type="text/javascr' + 'ipt"></scr' + 'ipt>';
+    str += '<scr' + 'ipt src="' + SSOCommonPath + 'scripts/sso.min.js" type="text/javascr' + 'ipt"></scr' + 'ipt>';
+    str += '<scr' + 'ipt src="' + SSOCommonPath + 'scripts/ssoConfig.js" type="text/javascr' + 'ipt"></scr' + 'ipt>';
+    str += '<scr' + 'ipt src="' + jsJcerwWebUrl + '/GlobalMenu/chinese/js/jcrw_sso.js" type="text/javascr' + 'ipt"></scr' + 'ipt>';
+	// RW add
+    str += '<scr' + 'ipt src="' + jsJcerwWebUrl + '/chinese/include/readyToShowLoginBar.js" type="text/javascr' + 'ipt"></scr' + 'ipt>';
+    document.write(str);
+</script>
+<script type="text/javascript" language="javascript">
+        var isFocus = false;
+        setTimeout(showLogin, 25);	//RW amend
+</script><div id="header">
+<script type="text/javascript" language="jscript">
+    document.write('<a id="logo" href="http://' + jsJCEWDomainIP + '"><img src="../../../GlobalMenu/chinese/images/logo_hkjc.gif" alt="香港賽馬會" /></a><div id="logo-130"><img src="../../../GlobalMenu/chinese/images/logo_hkjc_130_msg.gif" alt="慶祝130週年" /></div>');
+</script>
+<div id="header_nav" class="nav">
+<div id="topNav">
+<div>
+<script type="text/javascript" language="jscript">
+    document.write('<a href="http://' + jsJCEWDomainIP + '/home/chinese/index.asp">首頁</a>');
+</script>
+<a class="lang" href="javascript:changeLanguage();">English</a>
+
+<!-- search box -->
+<label for="searchtext" class="nosize">搜尋</label>
+<input onblur="if(this.value=='') this.value='搜尋';isFocus = false;" onfocus="if(this.value=='搜尋') this.value='';isFocus = true;" maxlength="166" value="搜尋" type="text" name="" id="searchtext" />
+<label for="submitsearch" class="nosize">提交搜尋</label> 
+<input onclick="javascript:goSearch();return false;" class="iconToggle" type="image" src="/racing/info/GlobalMenu/chinese/images/icon_toggle.gif" id="submitsearch" /><!-- RW amended-->
+<!-- end search box -->
+
+</div>
+<span id="globalLoginControl"></span>
+<div id="ssoDiv"></div>
+<span id="loginComponent"></span>
+</div>
+<div id="ewinContainer"><a class="ewin" href="http://bet.hkjc.com/default.aspx?lang=ch" onclick="WATracker.trackClickEvent('header_ewin_home')" target="_blank"><img src="../../../globalmenu/chinese/images/icon_ewin.gif" alt="eWin 投注區" /></a><a href="http://bet.hkjc.com/racing/?lang=ch" onclick="WATracker.trackClickEvent('header_ewin_racing')" target="_blank">賽馬</a> <a href="http://bet.hkjc.com/football/default.aspx?ci=zh-HK" onclick="WATracker.trackClickEvent('header_ewin_football')" target="_blank">足智彩</a> <a href="http://bet.hkjc.com/marksix/?lang=ch" onclick="WATracker.trackClickEvent('header_ewin_marksix')" target="_blank">六合彩</a></div>
+</div>
+</div>
+<!-- script for search box -->
+<script type="text/javascript" language="javascript">
+               var focus = "false";
+               var search_category = "racing";
+               document.getElementById("searchtext").onkeypress = function handleKeyPress(evt){
+               var keycode = (window.event)?event.keyCode:evt.which;
+                   if(keycode == 13){
+                      if(isFocus){
+                           focus = "false";
+                           goSearch();
+                           focus = "true";
+		    
+                      }
+	          }
+               }
+               function replaceAllChar(text, inp) {
+                   while(text.indexOf(inp)>=0)
+                       text = text.replace(inp, '');
+                   return text;
+               }
+               function goSearch(){
+
+                 if( focus == "false") {
+
+                 var keyword = document.getElementById('searchtext').value;
+                 for (var i=0; i<charArr.length; i++)                 
+                     keyword = replaceAllChar(keyword, charArr[i]);
+                 keyword = keyword.replace(/^\s+/, '').replace(/\s+$/, '');    
+                 if(keyword == "" || keyword == "Search" || keyword == "搜尋"){
+
+                 var lang =  "chinese";
+                
+                 if(lang == "english")
+	        	alert("Please input a search query");
+
+                 if(lang == "chinese")
+                         alert("請輸入搜尋字串");
+                }
+                else {
+					//	+ SearchPath 
+                      var url = "http:" + SearchPath + "/search/chinese/search.aspx?k="+Base64.encode(encodeURIComponent(keyword)); 
+                      if(search_category=="utility"){
+                           url += "&g=faq";
+                      }
+                      else{
+                           url += "&g=all";
+                      }
+                      url += "&t=n";
+                      window.location.href = url;
+                   }
+             }
+             else {
+                     focus = "false";
+                }
+             }
+         </script>
+<div class="clearfix" id="mainNav">
+<div class="nav">
+<div class="shadowL"></div>
+<div class="content">
+<script type="text/javascript" language="javascript">
+    document.write('<a href="http://entertainment.hkjc.com/entertainment/chinese/index.aspx" rel="entertainment" target="_top"><img src="../../../GlobalMenu/chinese/images/navigation/entertainment-l1.gif" alt="馬場及娛樂" /></a><a href="http://' + jsJCRWDomainIP + '/racing/chinese/index.aspx" rel="racing" target=""><img src="../../../GlobalMenu/chinese/images/navigation/racing-l1_over.gif" alt="賽馬資訊" /></a><a href="http://football.hkjc.com/football/chinese/index.aspx" rel="football" target=""><img src="../../../GlobalMenu/chinese/images/navigation/football-l1.gif" alt="足球資訊" /></a><a href="http://member.hkjc.com/member/chinese/index.asp" rel="member" target=""><img src="../../../GlobalMenu/chinese/images/navigation/member-l1.gif" alt="馬會會員" /></a><a href="http://charities.hkjc.com/charities/chinese/index.aspx" rel="charities" target=""><img src="../../../GlobalMenu/chinese/images/navigation/charities-l1.gif" alt="慈善及社區貢獻" /></a><a href="http://corporate.hkjc.com/corporate/chinese/index.aspx" rel="corporate" target=""><img src="../../../GlobalMenu/chinese/images/navigation/corporate-l1.gif" alt="馬會知多少" /></a>');
+</script>
+</div>
+<div class="shadowR"></div>
+</div>
+<div class="subNav">
+<div class="shadowL"></div>
+<div class="content">
+<script type="text/javascript" language="javascript">
+    document.write('' +
+'<ul>' +
+'<li>' +
+'<a id="racing-info-local" href="http://' + jsJCRWDomainIP + '/racing/info/meeting/racecard/chinese" rel="racing-info" target="">賽事資料(本地)</a><span class="stroke">|</span>' +
+'</li>' +
+'<li>' +
+'<a id="racing-info-simulcast" href="http://' + jsJCRWDomainIP + '/racing/overseas/chinese/index.aspx" rel="racing-info-simulcast" target="">賽事資料(越洋轉播)</a><span class="stroke">|</span>' +
+'</li>' +
+'<li>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/news/index.htm" rel="racing-news" target="">賽馬新聞</a><span class="stroke">|</span>' +
+'</li>' +
+'<li>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/racinginfo/key_races.asp" rel="key-races" target="">主要賽事</a><span class="stroke">|</span>' +
+'</li>' +
+'<li>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/press/showcase.asp" rel="multimedia-showcase" target="">視聽播放區</a><span class="stroke">|</span>' +
+'</li>' +
+'<li>' +
+'<a href="http://' + jsJCRWDomainIP + '/racing/chinese/international-racing/index.aspx" rel="international-racing" target="">國際賽馬及拍賣會</a><span class="stroke">|</span>' +
+'</li>' +
+'<li>' +
+'<a href="http://special.hkjc.com/racing/info/ch/betting/guide.asp" rel="betting-guide" target="_blank">投注指南</a><span class="stroke">|</span>' +
+'</li>' +
+'<li class="last">' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/school/why_index.htm" rel="learn-racing" target="">賽馬知多些</a>' +
+'</li>' +
+'</ul>');
+</script>
+</div>
+<div class="shadowR"></div>
+</div>
+<div class="shadowB"></div>
+</div>
+<script type="text/javascript" language="javascript">
+    //JcrwUrlPrefix & wcmsUrlPrefix from Site.Master
+    $("#racing-info-local").attr("href", JcrwUrlPrefix + "/meeting/racecard/chinese");
+    $("#racing-info-simulcast").attr("href", wcmsUrlPrefix + "/chinese/index.aspx");
+</script>
+</div>
+
+<script type="text/javascript">
+    toggleLang();
+    
+    $(document).ready(function() {
+        init();
+        setPromoPopup('', '', '', 'yes', 'yes', '');
+    });
+</script>
+<div id="contentContainer"><div class="shadowL"></div><div class="content">
+<link rel="stylesheet" type="text/css" href="/racing/Info/Content/chinese/RacingMenu.css" />
+<div id="navmenu-bg">
+    <ul id="navmenu-h">
+        <li><a href="/racing/Info/meeting/Entries/chinese/">報名表</a></li><li><a href="/racing/Info/meeting/RaceCard/chinese/">排位表</a><ul><li><a href="/racing/Info/meeting/RaceCard/chinese/">排位表</a></li><li><a href="/racing/Info/meeting/Trackwork/chinese/">晨操資料</a></li><li><a href="/racing/Info/meeting/RaceReportExt/chinese/">各駒上次競賽事件摘要</a></li><li><a href="/racing/Info/meeting/FormLine/chinese/">同場賽駒上次對壘賽績比較</a></li><li><a href="/racing/Info/meeting/ExceptionalFactors/chinese/">特別因素</a></li><li><a href="/racing/Info/meeting/VeterinaryRecord/chinese/">傷患紀錄</a></li></ul></li><li><a href="javascript:jcew_openCurrentOdds()">即時賠率</a></li><li><a href="/racing/Info/meeting/TrainerEntry/chinese/">練馬師分場表</a></li><li><a href="/racing/Info/meeting/JockeysRides/chinese/">騎師分場表</a></li><li><a href="/racing/Info/meeting/Changes/chinese/">參考資料</a><ul><li><a href="/racing/Info/meeting/Changes/chinese/">更易事項</a></li><li><a href="/racing/Info/meeting/Summary/chinese/">賽馬日一般資訊</a></li><li><a href="http://www.hkjc.com/chinese/racinginfo/raceday_focus_1.asp">賽日頭條</a></li><li><a href="http://www.hkjc.com/chinese/racinginfo/newhorse.asp">初出馬介紹</a></li><li><a href="http://racing.hkjc.com/racing/chinese/racing-info/last-run-reminder.aspx">上仗備忘</a></li><li><a href="javascript:openPowerFigures()">數字能量</a></li><li><a href="http://www.hkjc.com/chinese/tipsindex/tips_index.asp" target="_blank">貼士指數</a></li><li><a href="javascript:jcew_openEasyWin()">智易表</a></li><li><a href="http://www.hkjc.com/chinese/formguide/formguide.asp">速勢系統</a></li><li><a href="http://www.hkjc.com/chinese/racinginfo/racing_course_select.htm">賽道選用</a></li><li><a href="http://www.hkjc.com/chinese/racinginfo/racing_course.htm">跑道資料</a></li><li><a href="http://www.hkjc.com/chinese/racinginfo/racing_course_time.htm">跑道標準及紀錄時間</a></li><li><a href="http://www.hkjc.com/chinese/racinginfo/racing_rules_instr.asp">賽事規例及指示</a></li><li><a href="http://www.hkjc.com/chinese/racinginfo/reg_approved_gear.asp">香港賽馬會認可馬匹配備紀錄冊</a></li><li><a href="http://www.hkjc.com/chinese/racinginfo/handicap_policy.asp">評磅及評分政策</a></li><li><a href="javascript:jcew_allupcalculator('/racing/Info/meeting/AllUpCalculator/chinese/')">過關計算機</a></li><li><a href="/racing/Info/meeting/TTAutoPick/chinese/">三T神算機</a></li><li><a href="http://www.hkjc.com/chinese/racinginfo/racing_weather.htm">天氣預測</a></li></ul></li><li><a href="/racing/Info/meeting/Draw/chinese/">統計資料</a><ul><li><a href="/racing/Info/meeting/Draw/chinese/">檔位統計</a></li><li><a href="http://racing.hkjc.com/racing/chinese/racing-info/jkc-odds-chart.aspx">騎師王賠率走勢圖</a></li><li><a href="/racing/Info/meeting/JkcStat/chinese/">騎師王統計</a></li><li><a href="http://www.hkjc.com/chinese/racing/JockeyFavourite.asp">騎師大熱勝出及入位統計</a></li><li><a href="http://www.hkjc.com/chinese/racing/TrainerFavourite.asp">練馬師大熱勝出及入位統計</a></li></ul></li><li><a href="/racing/Info/meeting/Results/chinese/">賽果及派彩</a></li><li><a href="http://www.hkjc.com/chinese/racing/RaceReportFull.asp">賽事報告</a><ul><li><a href="http://www.hkjc.com/chinese/racing/RaceReportFull.asp">競賽事件報告</a></li><li><a href="http://www.hkjc.com/chinese/racing/CORunning.asp">沿途走勢評述</a></li></ul></li><li><a href="/racing/Info/jockey/Ranking/chinese">騎練資料</a><ul><li><a href="/racing/Info/jockey/Ranking/chinese">騎師資料</a></li><li><a href="/racing/Info/trainer/Ranking/chinese">練馬師資料</a></li></ul></li><li><a href="http://www.hkjc.com/chinese/racing/SelectHorse.asp">馬匹資料</a><ul><li><a href="http://www.hkjc.com/chinese/racing/SelectHorse.asp">馬匹資料</a></li><li><a href="http://www.hkjc.com/chinese/racing/mcs01_xml_horserating.asp?type=CLAS">馬匹評分</a></li><li class="multirow2"><a href="http://www.hkjc.com/chinese/racinginfo/fwb_declared_starters.asp">「優異成績特別獎金計劃」及「香港國際馬匹拍賣會新馬獎金」</a></li><li><a href="http://www.hkjc.com/chinese/racing/Track_Search.asp">晨操資料</a></li><li><a href="http://www.hkjc.com/chinese/racing/btresult.asp">試閘詳細結果</a></li><li><a href="/racing/Info/meeting/OVERecord/chinese/local">傷患紀錄</a></li><li><a href="http://www.hkjc.com/chinese/racing/horseinfo.asp">馬匹消息</a></li><li><a href="http://www.hkjc.com/chinese/racing/Health.asp">馬匹健康狀況	</a></li><li><a href="http://www.hkjc.com/chinese/racing/horse_former_name.asp">馬匹來港前名稱及血統</a></li><li><a href="http://www.hkjc.com/chinese/racinginfo/pps_import_critieria.htm">馬匹進口資格</a></li><li><a href="http://www.hkjc.com/chinese/racinginfo/ppo_performance_current.asp">自購馬來港前賽績</a></li></ul></li><li><a href="http://www.hkjc.com/chinese/racing/Fixture.asp">賽期表</a><ul><li><a href="http://www.hkjc.com/chinese/racinginfo/patternrace_current.asp">香港分級賽</a></li><li><a href="http://www.hkjc.com/chinese/racinginfo/key_races.asp">主要賽事</a></li><li><a href="http://www.hkjc.com/chinese/racing/Fixture.asp">今季賽期表</a></li></ul></li>
+    </ul>
+</div>
+
+<script language="javascript" type="text/javascript">
+    //add selected effect
+    $("#navmenu-h a").filter(function() {
+        return this.href.toLowerCase().indexOf("/" + jsController.replace("race", "meeting") + "/" + jsAction) > -1;
+    }).addClass("selected");
+    //add arrow gif
+    $("#navmenu-h>li li").filter(function() {
+        return $(this).find("ul").length > 0;
+    }).prepend("<div class='navmenu-arrow' />");
+    //adjust position of sub menu
+    $("#navmenu-h>li li").hover(function() {
+        if (document.body.clientWidth < ($(this).offset().left + 400)) {
+            $(this).find("ul").css("left", "-101%");
+        }
+    }, function() {
+        $(this).find("ul").css("left", "100%");
+    });    
+</script>
+
+<!--[if IE]>
+<script language="javascript" type="text/javascript">
+    //add shadow effect for IE
+    $("#navmenu-h ul").append(function() {
+        var height = $(this).children("li").length * 29;
+        height += $(this).children("li").filter(".multirow2").length * 15;
+        height += $(this).children("li").filter(".multirow3").length * 30;
+        return $("<div class='navmenu-shadow' />").height(height);
+    });
+</script>
+<![endif]-->
+<!--[if lte IE 6.5]>
+<script language="javascript" type="text/javascript">
+//    //add iframe mask to hack IE6 bug( )
+//    $("#navmenu-h ul").append(function() {
+//        var height = $(this).children("li").length * 29 + 5;
+//        return $("<iframe class='mask' />").height(height);
+//    });
+    
+    //as iframe would conflict with DC's global.js, so use hide 
+    //hide all <select> elements to compatible with production environment
+    $("#navmenu-bg ul").hover(function() {
+        $("select").css("visibility", "hidden");
+    }, function() {
+        $("select").css("visibility", "visible");
+    });
+    //add iehover effect for IE6
+    $("#navmenu-h li").hover(function() {
+        $(this).addClass("iehover");
+    }, function() {
+        $(this).removeClass("iehover");
+    });
+</script>
+<![endif]-->
+
+    
+<script type="text/javascript" src="/racing/Info/Scripts/JQueryCookie.js" ></script> 
+<script type="text/javascript" src="/racing/Info/Scripts/DragTable.js" ></script> 
+<div id="results">
+    
+
+<div class="clearDivFloat">
+    <table width="760px">
+        <tr>
+            <td class="Header">
+            <img src="/racing/Info/Chinese/revamp/images/racing/title_results.gif" border="0" alt="" /></td>
+        </tr>
+    </table>
+</div>
+<!------------------------------------------------------------------------------------------------------------ 
+ !    Meeting Panel
+------------------------------------------------------------------------------------------------------------->
+
+<!------------------------------------------------------------------------------------------------------------ 
+ !    Race Panel
+------------------------------------------------------------------------------------------------------------->
+<!-- 2 New Racecourse Buttons ends -->
+<div class="raceNum clearfix">
+    <table cellspacing="1px" cellpadding="1px" border="0"><tr valign="middle" bgcolor="#ffffff"><td style="text-align:left;">&nbsp;</td><td nowrap="nowrap" class="racingTitle" style="text-align:right;">沙田:</td><td nowrap="nowrap" style="text-align:center;" width="24px"><img src="/racing/Info/StaticFile/Images/Racing/racecard_rt_1_o.gif" border="0" /></td><td nowrap="nowrap" style="text-align:center;" width="24px"><a href="/racing/Info/Meeting/Results/Chinese/Local/20150712/ST/2"><img src="/racing/Info/StaticFile/Images/Racing/racecard_rt_2.gif" name="racecard_rt_2_r" id="racecard_rt_2_r" border="0" /></a></td><td nowrap="nowrap" style="text-align:center;" width="24px"><a href="/racing/Info/Meeting/Results/Chinese/Local/20150712/ST/3"><img src="/racing/Info/StaticFile/Images/Racing/racecard_rt_3.gif" name="racecard_rt_3_r" id="racecard_rt_3_r" border="0" /></a></td><td nowrap="nowrap" style="text-align:center;" width="24px"><a href="/racing/Info/Meeting/Results/Chinese/Local/20150712/ST/4"><img src="/racing/Info/StaticFile/Images/Racing/racecard_rt_4.gif" name="racecard_rt_4_r" id="racecard_rt_4_r" border="0" /></a></td><td nowrap="nowrap" style="text-align:center;" width="24px"><a href="/racing/Info/Meeting/Results/Chinese/Local/20150712/ST/5"><img src="/racing/Info/StaticFile/Images/Racing/racecard_rt_5.gif" name="racecard_rt_5_r" id="racecard_rt_5_r" border="0" /></a></td><td nowrap="nowrap" style="text-align:center;" width="24px"><a href="/racing/Info/Meeting/Results/Chinese/Local/20150712/ST/6"><img src="/racing/Info/StaticFile/Images/Racing/racecard_rt_6.gif" name="racecard_rt_6_r" id="racecard_rt_6_r" border="0" /></a></td><td nowrap="nowrap" style="text-align:center;" width="24px"><a href="/racing/Info/Meeting/Results/Chinese/Local/20150712/ST/7"><img src="/racing/Info/StaticFile/Images/Racing/racecard_rt_7.gif" name="racecard_rt_7_r" id="racecard_rt_7_r" border="0" /></a></td><td nowrap="nowrap" style="text-align:center;" width="24px"><a href="/racing/Info/Meeting/Results/Chinese/Local/20150712/ST/8"><img src="/racing/Info/StaticFile/Images/Racing/racecard_rt_8.gif" name="racecard_rt_8_r" id="racecard_rt_8_r" border="0" /></a></td><td nowrap="nowrap" style="text-align:center;" width="24px"><a href="/racing/Info/Meeting/Results/Chinese/Local/20150712/ST/9"><img src="/racing/Info/StaticFile/Images/Racing/racecard_rt_9.gif" name="racecard_rt_9_r" id="racecard_rt_9_r" border="0" /></a></td><td nowrap="nowrap" style="text-align:center;" width="24px"><a href="/racing/Info/Meeting/Results/Chinese/Local/20150712/ST/10"><img src="/racing/Info/StaticFile/Images/Racing/racecard_rt_10.gif" name="racecard_rt_10_r" id="racecard_rt_10_r" border="0" /></a></td><td nowrap="nowrap" style="text-align:center;" width="24px"><a href="/racing/Info/Meeting/Results/Chinese/Local/20150712/ST/11"><img src="/racing/Info/StaticFile/Images/Racing/racecard_rt_11.gif" name="racecard_rt_11_r" id="racecard_rt_11_r" border="0" /></a></td><td><a href="/racing/Info/Meeting/ResultsAll/Chinese/Local/20150712"><img src="/racing/Info/StaticFile/Chinese/Images/Racing/racecard_rt_all.gif" name="racecard_rt_all_r" id="racecard_rt_all_r" border="0" /></a></td></tr></table>
+</div>
+
+
+<script type="text/javascript" language="javascript">
+    function goURL(url) {
+        // JCRWSystemCutoffDate, HkjcWebUrl, curIsEnglish, jsAction From Site.Master
+        var cutOffDate = JCRWSystemCutoffDate;
+        var curSelect = document.getElementById("raceDateSelect");
+        var curArgs = curSelect.options[curSelect.selectedIndex].value;
+
+        var curDate = curArgs.split("/")[1];
+        var isSimulcastOnly = curArgs.indexOf("Simulcast") >= 0;
+
+        if ((curDate < cutOffDate) && isSimulcastOnly) {
+            var paraDate = curSelect.options[curSelect.selectedIndex].text;
+            url = HkjcWebUrl + "/" + (curIsEnglish ? "english" : "chinese") + "/racing/";
+            if (jsAction == "resultsall") {
+                url += "raceresult_all.asp?raceDate=" + paraDate;
+            }
+            else {
+                url += "results.asp?raceDate=" + paraDate + "&venue=" + curArgs.split("/")[2];
+            }
+            parent.document.location.href = url;
+        }
+        else {
+            if (jsAction == "resultsall")
+                curArgs = curArgs.replace("Simulcast", "Local");
+            url = url.replace("Local/yyyyMMdd/ST", curArgs);
+            parent.document.location.href = url;
+        }
+    }
+</script>
+
+
+<div class="rowDiv5">
+    <table border="0" width="760px">
+        <tr>
+            <td class="tdAlignL number13 color_black">
+                賽事日期: 12/07/2015&nbsp;&nbsp;&nbsp;&nbsp;沙田
+            </td>
+            <td class="tdAlignR">
+                <select name="raceDateSelect" id="raceDateSelect">
+                    <option value='Local/20150712/ST' selected>12/07/2015</option><option value='Local/20150708/HV'>08/07/2015</option><option value='Local/20150705/ST'>05/07/2015</option><option value='Local/20150701/ST'>01/07/2015</option><option value='Local/20150627/ST'>27/06/2015</option><option value='Local/20150624/HV'>24/06/2015</option><option value='Local/20150621/ST'>21/06/2015</option><option value='Simulcast/20150620/S1'>20/06/2015</option><option value='Local/20150617/HV'>17/06/2015</option><option value='Simulcast/20150616/S1'>16/06/2015</option><option value='Local/20150614/ST'>14/06/2015</option><option value='Local/20150610/HV'>10/06/2015</option><option value='Local/20150607/ST'>07/06/2015</option><option value='Simulcast/20150606/S1'>06/06/2015</option><option value='Local/20150603/HV'>03/06/2015</option><option value='Local/20150531/ST'>31/05/2015</option><option value='Local/20150527/ST'>27/05/2015</option><option value='Local/20150524/ST'>24/05/2015</option><option value='Local/20150520/HV'>20/05/2015</option><option value='Simulcast/20150517/S1'>17/05/2015</option><option value='Local/20150516/ST'>16/05/2015</option><option value='Local/20150513/HV'>13/05/2015</option><option value='Local/20150509/ST'>09/05/2015</option><option value='Local/20150506/HV'>06/05/2015</option><option value='Local/20150503/ST'>03/05/2015</option><option value='Local/20150429/HV'>29/04/2015</option><option value='Local/20150426/ST'>26/04/2015</option><option value='Local/20150422/HV'>22/04/2015</option><option value='Local/20150419/ST'>19/04/2015</option><option value='Simulcast/20150418/S1'>18/04/2015</option><option value='Local/20150415/HV'>15/04/2015</option><option value='Local/20150412/ST'>12/04/2015</option><option value='Simulcast/20150411/S1'>11/04/2015</option><option value='Local/20150407/ST'>07/04/2015</option><option value='Simulcast/20150406/S2'>06/04/2015</option><option value='Simulcast/20150404/S1'>04/04/2015</option><option value='Local/20150401/HV'>01/04/2015</option><option value='Local/20150329/ST'>29/03/2015</option><option value='Simulcast/20150328/S1'>28/03/2015</option><option value='Local/20150325/ST'>25/03/2015</option><option value='Local/20150321/ST'>21/03/2015</option><option value='Local/20150318/HV'>18/03/2015</option><option value='Local/20150315/ST'>15/03/2015</option><option value='Local/20150311/HV'>11/03/2015</option><option value='Local/20150308/ST'>08/03/2015</option><option value='Simulcast/20150307/S1'>07/03/2015</option><option value='Local/20150304/HV'>04/03/2015</option><option value='Local/20150301/ST'>01/03/2015</option><option value='Simulcast/20150228/S1'>28/02/2015</option><option value='Local/20150225/HV'>25/02/2015</option><option value='Local/20150221/ST'>21/02/2015</option><option value='Local/20150215/ST'>15/02/2015</option><option value='Local/20150211/HV'>11/02/2015</option><option value='Local/20150207/ST'>07/02/2015</option><option value='Local/20150204/HV'>04/02/2015</option><option value='Local/20150201/ST'>01/02/2015</option><option value='Local/20150128/HV'>28/01/2015</option><option value='Local/20150125/ST'>25/01/2015</option><option value='Local/20150121/HV'>21/01/2015</option><option value='Local/20150118/ST'>18/01/2015</option><option value='Local/20150114/HV'>14/01/2015</option><option value='Local/20150110/ST'>10/01/2015</option><option value='Local/20150107/HV'>07/01/2015</option><option value='Local/20150104/ST'>04/01/2015</option><option value='Local/20150101/ST'>01/01/2015</option><option value='Local/20141228/ST'>28/12/2014</option><option value='Local/20141220/ST'>20/12/2014</option><option value='Local/20141217/HV'>17/12/2014</option><option value='Local/20141214/ST'>14/12/2014</option><option value='Local/20141210/HV'>10/12/2014</option><option value='Local/20141207/ST'>07/12/2014</option><option value='Local/20141203/HV'>03/12/2014</option><option value='Local/20141130/ST'>30/11/2014</option><option value='Local/20141126/HV'>26/11/2014</option><option value='Local/20141123/ST'>23/11/2014</option><option value='Local/20141119/HV'>19/11/2014</option><option value='Local/20141115/ST'>15/11/2014</option><option value='Local/20141112/HV'>12/11/2014</option><option value='Local/20141109/ST'>09/11/2014</option><option value='Simulcast/20141108/S1'>08/11/2014</option><option value='Simulcast/20141104/S1'>04/11/2014</option><option value='Local/20141102/ST'>02/11/2014</option><option value='Simulcast/20141101/S1'>01/11/2014</option><option value='Local/20141029/HV'>29/10/2014</option><option value='Local/20141026/ST'>26/10/2014</option><option value='Simulcast/20141025/S1'>25/10/2014</option><option value='Local/20141022/HV'>22/10/2014</option><option value='Local/20141019/HV'>19/10/2014</option><option value='Simulcast/20141018/S1'>18/10/2014</option><option value='Local/20141015/ST'>15/10/2014</option><option value='Local/20141012/ST'>12/10/2014</option><option value='Local/20141008/ST'>08/10/2014</option><option value='Local/20141005/ST'>05/10/2014</option><option value='Local/20141001/ST'>01/10/2014</option><option value='Local/20140927/ST'>27/09/2014</option><option value='Local/20140924/ST'>24/09/2014</option><option value='Local/20140921/ST'>21/09/2014</option><option value='Local/20140917/ST'>17/09/2014</option><option value='Local/20140914/ST'>14/09/2014</option><option value='Simulcast/20140712/S1'>12/07/2014</option><option value='Local/20140706/ST'>06/07/2014</option><option value='Local/20140701/ST'>01/07/2014</option><option value='Local/20140628/ST'>28/06/2014</option><option value='Local/20140625/ST'>25/06/2014</option><option value='Local/20140622/ST'>22/06/2014</option><option value='Simulcast/20140621/S1'>21/06/2014</option><option value='Local/20140618/ST'>18/06/2014</option><option value='Simulcast/20140617/S1'>17/06/2014</option><option value='Local/20140615/ST'>15/06/2014</option><option value='Local/20140611/ST'>11/06/2014</option><option value='Local/20140608/ST'>08/06/2014</option><option value='Simulcast/20140607/S1'>07/06/2014</option><option value='Local/20140605/HV'>05/06/2014</option><option value='Local/20140601/ST'>01/06/2014</option><option value='Simulcast/20140531/S1'>31/05/2014</option><option value='Local/20140528/HV'>28/05/2014</option><option value='Local/20140525/ST'>25/05/2014</option><option value='Local/20140521/HV'>21/05/2014</option><option value='Simulcast/20140518/S1'>18/05/2014</option><option value='Local/20140517/ST'>17/05/2014</option><option value='Local/20140514/HV'>14/05/2014</option><option value='Local/20140510/ST'>10/05/2014</option><option value='Local/20140507/HV'>07/05/2014</option><option value='Local/20140504/ST'>04/05/2014</option><option value='Local/20140430/HV'>30/04/2014</option><option value='Local/20140427/ST'>27/04/2014</option><option value='Local/20140421/ST'>21/04/2014</option><option value='Simulcast/20140419/S1'>19/04/2014</option><option value='Local/20140416/HV'>16/04/2014</option><option value='Local/20140413/ST'>13/04/2014</option><option value='Simulcast/20140412/S1'>12/04/2014</option><option value='Local/20140409/HV'>09/04/2014</option><option value='Local/20140406/ST'>06/04/2014</option><option value='Local/20140402/HV'>02/04/2014</option><option value='Local/20140330/ST'>30/03/2014</option><option value='Simulcast/20140329/S1'>29/03/2014</option><option value='Local/20140326/ST'>26/03/2014</option><option value='Local/20140323/ST'>23/03/2014</option><option value='Local/20140319/HV'>19/03/2014</option><option value='Local/20140316/ST'>16/03/2014</option><option value='Local/20140312/HV'>12/03/2014</option><option value='Local/20140309/ST'>09/03/2014</option><option value='Simulcast/20140308/S1'>08/03/2014</option><option value='Local/20140305/HV'>05/03/2014</option><option value='Local/20140301/ST'>01/03/2014</option><option value='Local/20140226/HV'>26/02/2014</option><option value='Local/20140223/ST'>23/02/2014</option><option value='Simulcast/20140222/S1'>22/02/2014</option><option value='Local/20140219/HV'>19/02/2014</option><option value='Local/20140216/ST'>16/02/2014</option><option value='Local/20140212/HV'>12/02/2014</option><option value='Local/20140208/ST'>08/02/2014</option><option value='Local/20140205/HV'>05/02/2014</option><option value='Local/20140202/ST'>02/02/2014</option><option value='Local/20140126/ST'>26/01/2014</option><option value='Local/20140122/HV'>22/01/2014</option><option value='Local/20140119/ST'>19/01/2014</option><option value='Local/20140115/HV'>15/01/2014</option><option value='Local/20140111/ST'>11/01/2014</option><option value='Local/20140108/HV'>08/01/2014</option><option value='Local/20140105/ST'>05/01/2014</option><option value='Local/20140101/ST'>01/01/2014</option><option value='Local/20131229/ST'>29/12/2013</option><option value='Local/20131226/HV'>26/12/2013</option><option value='Local/20131221/ST'>21/12/2013</option><option value='Local/20131218/HV'>18/12/2013</option><option value='Local/20131215/ST'>15/12/2013</option><option value='Local/20131211/HV'>11/12/2013</option><option value='Local/20131208/ST'>08/12/2013</option><option value='Local/20131204/HV'>04/12/2013</option><option value='Local/20131201/ST'>01/12/2013</option><option value='Local/20131127/HV'>27/11/2013</option><option value='Local/20131124/ST'>24/11/2013</option><option value='Local/20131120/HV'>20/11/2013</option><option value='Local/20131117/ST'>17/11/2013</option><option value='Local/20131113/HV'>13/11/2013</option><option value='Local/20131109/ST'>09/11/2013</option><option value='Local/20131106/HV'>06/11/2013</option><option value='Simulcast/20131105/S1'>05/11/2013</option><option value='Local/20131103/ST'>03/11/2013</option><option value='Simulcast/20131102/S1'>02/11/2013</option><option value='Local/20131030/ST'>30/10/2013</option><option value='Local/20131027/ST'>27/10/2013</option><option value='Local/20131023/HV'>23/10/2013</option><option value='Local/20131020/HV'>20/10/2013</option><option value='Simulcast/20131019/S1'>19/10/2013</option><option value='Local/20131016/ST'>16/10/2013</option><option value='Local/20131012/ST'>12/10/2013</option><option value='Local/20131009/HV'>09/10/2013</option><option value='Local/20131006/ST'>06/10/2013</option><option value='Local/20131001/ST'>01/10/2013</option><option value='Simulcast/20130929/S1'>29/09/2013</option><option value='Local/20130925/HV'>25/09/2013</option><option value='Local/20130922/ST'>22/09/2013</option><option value='Local/20130917/HV'>17/09/2013</option><option value='Local/20130915/ST'>15/09/2013</option><option value='Local/20130911/HV'>11/09/2013</option><option value='Local/20130908/ST'>08/09/2013</option>
+                </select>
+                <a href="javascript:goURL('/racing/Info/Meeting/Results/Chinese/Local/yyyyMMdd/ST');"><img src="/racing/Info/StaticFile/Chinese/Images/go.gif" style="vertical-align:top;" border="0" width="26px" height="20px" alt="瀏覽" /></a>
+            </td>
+        </tr>
+    </table>
+</div>
+<div class="rowDiv15"><div class="rowDivRight"><a href="http://www.hkjc.com/chinese/racing/display_sectionaltime.asp?RaceDate=12/07/2015&amp;Raceno=1&amp;All=0#Race1" target="_blank"><img src="/racing/Info/StaticFile/Chinese/Images/Racing/sectional_time_btn.gif" border="0" /></a></div></div>
+
+<script language="javascript" type="text/javascript" src="/racing/Info/Scripts/OpenVideo.min.js"></script>
+<script language="javascript" type="text/javascript" src="/racing/Info/Chinese/include/akamai.min.js"></script>
+
+<div class="rowDiv15"><div class="boldFont14 color_white trBgBlue">第 1 場 (767)</div><div class="clearDivFloat paddingTop5"><table cellpadding="0px" class="tableBorder0 font13" width="100%"><tr><td class="divWidth">第五班 - <span class="number14">1800米 - (40-15)</span></td><td class="raceinfoDivWidth">場地狀況 :</td><td colspan="5">好地至快地</td></tr><tr><td>紅旗飛揚讓賽</td><td>賽道 :</td><td colspan="5">草地 - &quot;B+2&quot; 賽道</td></tr><tr><td class="number14">HK$ 575,000</td><td>時間 :</td><td class="number14">(13.75)</td><td class="number14">(35.69)</td><td class="number14">(1.00.02)</td><td class="number14">(1.24.86)</td><td class="number14">(1.47.89)</td></tr><tr><td>&nbsp;</td><td>分段時間 :</td><td class="number14">13.75</td><td class="number14">21.94</td><td class="number14">24.33</td><td class="number14">24.84</td><td class="number14">23.03</td></tr><tr><td colspan="7"><div class="clearDivFloat divH15"><a href="javascript:OpenPopWin('/racing/video/play.asp?type=replay-full&amp;date=20150712&amp;no=01&amp;lang=chi',640,390);" target="_self"><img src="/racing/Info/StaticFile/Images/icon-multiangles.png" border="0" />&nbsp;全方位賽事重溫</a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="javascript:OpenPopWin('/racing/video/play.asp?type=passthrough&amp;date=20150712&amp;no=01&amp;lang=chi',640,390);" target="_self"><img src="/racing/Info/StaticFile/Images/icon-passthru.png" border="0" />&nbsp;餘勢分析</a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="javascript:OpenPopWin('/racing/video/aerial.aspx?date=20150712&amp;no=01&amp;lang=chi',853,480);" target="_self"><img src="/racing/Info/StaticFile/Images/icon-trakus-2.png" border="0" />&nbsp;模擬鳥瞰重溫</a></div></td></tr></table></div></div>
+<span style="white-space: nowrap;"></span>
+
+
+<script language="JavaScript" type="text/JavaScript">
+    function MM_openBrWindow(theURL) { //v2.0
+        window.open(theURL, '', 'width=290,height=360');
+    }
+</script>
+
+<div class="clearDivFloat rowDiv15">
+    
+    <table cellpadding="1" cellspacing="1" class="tableBorder trBgBlue tdAlignC number12 draggable" width="760px">
+        <thead> 
+            <tr class="tdAlignVT trBgBlue1 fontStyle color_white LBFont14 " style="cursor: move;">
+                <td width="60px" align="center">
+                    名次
+                </td>
+                <td width="60px" align="center">
+                    馬號
+                </td>
+                <td width="245px" align="center">
+                    馬名
+                </td>
+                <td width="125px" align="center">
+                    騎師
+                </td>
+                <td width="125px" align="center">練馬師</td><td width="55px" align="center">實際<br />負磅</td><td width="55px" align="center">排位<br />體重</td><td width="55px" align="center">檔位</td><td width="55px" align="center">頭馬<br />距離</td><td width="65px" align="center">沿途<br />走位</td><td width="65px" align="center">完成<br />時間</td><td width="65px" align="center">獨贏<br />賠率</td>
+            </tr>
+        </thead>
+        <tbody>
+        <tr class="trBgGrey"><td nowrap="nowrap">1</td><td nowrap="nowrap">4</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=M327">團圓飛舞</a>(M327)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=MOJ&amp;season=Previous">莫雷拉</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=HAD&amp;season=Previous">賀賢</a></td><td nowrap="nowrap">127</td><td nowrap="nowrap">1154</td><td nowrap="nowrap">10</td><td nowrap="nowrap">-</td><td align="center" nowrap="nowrap"><table width="80" border="0" cellSpacing="0" cellPadding="0"><tr><td width="16" align="center">12</td><td width="16" align="center">13</td><td width="16" align="center">13</td><td width="16" align="center">12</td><td width="16" align="center">1</td></tr></table></td><td nowrap="nowrap">1.47.89</td><td nowrap="nowrap">2.3</td></tr><tr class="trBgWhite"><td nowrap="nowrap">2</td><td nowrap="nowrap">14</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=P293">精彩時機</a>(P293)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=CML&amp;season=Previous">蔡明紹</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=WS&amp;season=Previous">胡森</a></td><td nowrap="nowrap">118</td><td nowrap="nowrap">1137</td><td nowrap="nowrap">14</td><td nowrap="nowrap">2</td><td align="center" nowrap="nowrap"><table width="80" border="0" cellSpacing="0" cellPadding="0"><tr><td width="16" align="center">14</td><td width="16" align="center">14</td><td width="16" align="center">14</td><td width="16" align="center">8</td><td width="16" align="center">2</td></tr></table></td><td nowrap="nowrap">1.48.19</td><td nowrap="nowrap">12</td></tr><tr class="trBgGrey"><td nowrap="nowrap">3</td><td nowrap="nowrap">1</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=P198">自動導航</a>(P198)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=PZ&amp;season=Previous">潘頓</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=FC&amp;season=Previous">方嘉柏</a></td><td nowrap="nowrap">133</td><td nowrap="nowrap">1086</td><td nowrap="nowrap">6</td><td nowrap="nowrap">5</td><td align="center" nowrap="nowrap"><table width="80" border="0" cellSpacing="0" cellPadding="0"><tr><td width="16" align="center">8</td><td width="16" align="center">10</td><td width="16" align="center">8</td><td width="16" align="center">5</td><td width="16" align="center">3</td></tr></table></td><td nowrap="nowrap">1.48.67</td><td nowrap="nowrap">5.6</td></tr><tr class="trBgWhite"><td nowrap="nowrap">4</td><td nowrap="nowrap">6</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=L393">好球</a>(L393)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=SUA&amp;season=Previous">薛寶力</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=SA&amp;season=Previous">孫達志</a></td><td nowrap="nowrap">124</td><td nowrap="nowrap">1054</td><td nowrap="nowrap">3</td><td nowrap="nowrap">5-1/2</td><td align="center" nowrap="nowrap"><table width="80" border="0" cellSpacing="0" cellPadding="0"><tr><td width="16" align="center">11</td><td width="16" align="center">11</td><td width="16" align="center">11</td><td width="16" align="center">10</td><td width="16" align="center">4</td></tr></table></td><td nowrap="nowrap">1.48.75</td><td nowrap="nowrap">14</td></tr><tr class="trBgGrey"><td nowrap="nowrap">5</td><td nowrap="nowrap">11</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=P081">大埔福星</a>(P081)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=STH&amp;season=Previous">蘇狄雄</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=YTP&amp;season=Previous">容天鵬</a></td><td nowrap="nowrap">111</td><td nowrap="nowrap">1102</td><td nowrap="nowrap">5</td><td nowrap="nowrap">7-3/4</td><td align="center" nowrap="nowrap"><table width="80" border="0" cellSpacing="0" cellPadding="0"><tr><td width="16" align="center">4</td><td width="16" align="center">7</td><td width="16" align="center">10</td><td width="16" align="center">14</td><td width="16" align="center">5</td></tr></table></td><td nowrap="nowrap">1.49.13</td><td nowrap="nowrap">60</td></tr><tr class="trBgWhite"><td nowrap="nowrap">6</td><td nowrap="nowrap">13</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=P017">電訊太子</a>(P017)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=CAN&amp;season=Previous">郭能</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=SCS&amp;season=Previous">沈集成</a></td><td nowrap="nowrap">121</td><td nowrap="nowrap">1020</td><td nowrap="nowrap">11</td><td nowrap="nowrap">8</td><td align="center" nowrap="nowrap"><table width="80" border="0" cellSpacing="0" cellPadding="0"><tr><td width="16" align="center">10</td><td width="16" align="center">6</td><td width="16" align="center">7</td><td width="16" align="center">7</td><td width="16" align="center">6</td></tr></table></td><td nowrap="nowrap">1.49.16</td><td nowrap="nowrap">15</td></tr><tr class="trBgGrey"><td nowrap="nowrap">7</td><td nowrap="nowrap">3</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=P268">有智者</a>(P268)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=CYT&amp;season=Previous">鄭雨滇</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=LKW&amp;season=Previous">呂健威</a></td><td nowrap="nowrap">129</td><td nowrap="nowrap">1074</td><td nowrap="nowrap">7</td><td nowrap="nowrap">8-1/2</td><td align="center" nowrap="nowrap"><table width="80" border="0" cellSpacing="0" cellPadding="0"><tr><td width="16" align="center">5</td><td width="16" align="center">2</td><td width="16" align="center">2</td><td width="16" align="center">1</td><td width="16" align="center">7</td></tr></table></td><td nowrap="nowrap">1.49.26</td><td nowrap="nowrap">7.8</td></tr><tr class="trBgWhite"><td nowrap="nowrap">8</td><td nowrap="nowrap">7</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=S035">兄弟醒</a>(S035)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=WJH&amp;season=Previous">黃皓楠</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=LAL&amp;season=Previous">李易達</a></td><td nowrap="nowrap">113</td><td nowrap="nowrap">1148</td><td nowrap="nowrap">13</td><td nowrap="nowrap">9</td><td align="center" nowrap="nowrap"><table width="80" border="0" cellSpacing="0" cellPadding="0"><tr><td width="16" align="center">6</td><td width="16" align="center">1</td><td width="16" align="center">1</td><td width="16" align="center">2</td><td width="16" align="center">8</td></tr></table></td><td nowrap="nowrap">1.49.33</td><td nowrap="nowrap">30</td></tr><tr class="trBgGrey"><td nowrap="nowrap">9</td><td nowrap="nowrap">2</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=P407">董事長</a>(P407)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=YML&amp;season=Previous">楊明綸</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=YPF&amp;season=Previous">姚本輝</a></td><td nowrap="nowrap">131</td><td nowrap="nowrap">1063</td><td nowrap="nowrap">9</td><td nowrap="nowrap">9</td><td align="center" nowrap="nowrap"><table width="80" border="0" cellSpacing="0" cellPadding="0"><tr><td width="16" align="center">1</td><td width="16" align="center">3</td><td width="16" align="center">3</td><td width="16" align="center">4</td><td width="16" align="center">9</td></tr></table></td><td nowrap="nowrap">1.49.33</td><td nowrap="nowrap">14</td></tr><tr class="trBgWhite"><td nowrap="nowrap">10</td><td nowrap="nowrap">9</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=N192">彩利</a>(N192)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=LWM&amp;season=Previous">賴維銘</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=NTK&amp;season=Previous">吳定強</a></td><td nowrap="nowrap">122</td><td nowrap="nowrap">1030</td><td nowrap="nowrap">1</td><td nowrap="nowrap">9-1/2</td><td align="center" nowrap="nowrap"><table width="80" border="0" cellSpacing="0" cellPadding="0"><tr><td width="16" align="center">7</td><td width="16" align="center">8</td><td width="16" align="center">9</td><td width="16" align="center">11</td><td width="16" align="center">10</td></tr></table></td><td nowrap="nowrap">1.49.42</td><td nowrap="nowrap">24</td></tr><tr class="trBgGrey"><td nowrap="nowrap">11</td><td nowrap="nowrap">8</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=P237">赤驥</a>(P237)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=LHW&amp;season=Previous">黎海榮</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=MA&amp;season=Previous">苗禮德</a></td><td nowrap="nowrap">122</td><td nowrap="nowrap">1075</td><td nowrap="nowrap">8</td><td nowrap="nowrap">9-3/4</td><td align="center" nowrap="nowrap"><table width="80" border="0" cellSpacing="0" cellPadding="0"><tr><td width="16" align="center">9</td><td width="16" align="center">9</td><td width="16" align="center">5</td><td width="16" align="center">3</td><td width="16" align="center">11</td></tr></table></td><td nowrap="nowrap">1.49.43</td><td nowrap="nowrap">47</td></tr><tr class="trBgWhite"><td nowrap="nowrap">12</td><td nowrap="nowrap">10</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=P163">旅遊大師</a>(P163)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=TON&amp;season=Previous">湯智傑</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=SWY&amp;season=Previous">蘇偉賢</a></td><td nowrap="nowrap">120</td><td nowrap="nowrap">1104</td><td nowrap="nowrap">4</td><td nowrap="nowrap">9-3/4</td><td align="center" nowrap="nowrap"><table width="80" border="0" cellSpacing="0" cellPadding="0"><tr><td width="16" align="center">3</td><td width="16" align="center">5</td><td width="16" align="center">6</td><td width="16" align="center">9</td><td width="16" align="center">12</td></tr></table></td><td nowrap="nowrap">1.49.46</td><td nowrap="nowrap">91</td></tr><tr class="trBgGrey"><td nowrap="nowrap">13</td><td nowrap="nowrap">12</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=N130">開心凱旋</a>(N130)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=LDE&amp;season=Previous">梁家俊</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=MKL&amp;season=Previous">文家良</a></td><td nowrap="nowrap">119</td><td nowrap="nowrap">967</td><td nowrap="nowrap">12</td><td nowrap="nowrap">10-3/4</td><td align="center" nowrap="nowrap"><table width="80" border="0" cellSpacing="0" cellPadding="0"><tr><td width="16" align="center">2</td><td width="16" align="center">4</td><td width="16" align="center">4</td><td width="16" align="center">6</td><td width="16" align="center">13</td></tr></table></td><td nowrap="nowrap">1.49.60</td><td nowrap="nowrap">25</td></tr><tr class="trBgWhite"><td nowrap="nowrap">14</td><td nowrap="nowrap">5</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=M377">醒少少</a>(M377)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=NGA&amp;season=Previous">吳嘉晉</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=HL&amp;season=Previous">何良</a></td><td nowrap="nowrap">119</td><td nowrap="nowrap">917</td><td nowrap="nowrap">2</td><td nowrap="nowrap">11-1/2</td><td align="center" nowrap="nowrap"><table width="80" border="0" cellSpacing="0" cellPadding="0"><tr><td width="16" align="center">13</td><td width="16" align="center">12</td><td width="16" align="center">12</td><td width="16" align="center">13</td><td width="16" align="center">14</td></tr></table></td><td nowrap="nowrap">1.49.71</td><td nowrap="nowrap">37</td></tr><tr class="trBgGrey"><td nowrap="nowrap">WV</td><td nowrap="nowrap" /><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=M335">蜚聲國際</a>(M335)</td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/jockeyprofile.asp?jockeycode=HCY&amp;season=Previous">何澤堯</a></td><td class="tdAlignL font13 fontStyle" nowrap="nowrap"><a href="http://www.hkjc.com/chinese/racing/trainerprofile.asp?trainercode=GR&amp;season=Previous">高伯新</a></td><td nowrap="nowrap">119</td><td nowrap="nowrap">1163</td><td nowrap="nowrap">---</td><td nowrap="nowrap">---</td><td nowrap="nowrap">-</td><td nowrap="nowrap">---</td><td nowrap="nowrap">---</td></tr>
+        </tbody>
+    </table>
+    <font size="2">
+        備註: <a href="javascript:MM_openBrWindow('http://www.hkjc.com/Chinese/include/special_race_index.htm')">賽事特別情況索引</a>
+    </font>
+    <br />
+    
+</div>
+<div class="rowDivLeft rowDiv10"><table border='0' cellspacing='0' cellpadding='0'><tr><td><table width="450px" cellspacing="1px" cellpadding="1px" class="tableBorder trBgBlue tdAlignC font13 fontStyle"><tr><td colspan="3" class="trBgBlue1 tdAlignL boldFont14 color_white">派彩</td></tr><tr class="trBg01"><td>彩池</td><td>勝出組合</td><td>派彩&nbsp;(HK$)</td></tr><tr class="trBgGrey1"><td rowspan="1">獨贏</td><td class="number14">4</td><td class="number14 tdAlignR">23.00</td></tr><tr class="trBgWhite"><td rowspan="3">位置</td><td class="number14">4</td><td class="number14 tdAlignR">13.50</td></tr><tr class="trBgWhite"><td class="number14">14</td><td class="number14 tdAlignR">36.00</td></tr><tr class="trBgWhite"><td class="number14">1</td><td class="number14 tdAlignR">16.00</td></tr><tr class="trBgGrey1"><td rowspan="1">連贏</td><td class="number14">4,14</td><td class="number14 tdAlignR">195.50</td></tr><tr class="trBgWhite"><td rowspan="3">位置Q</td><td class="number14">4,14</td><td class="number14 tdAlignR">72.00</td></tr><tr class="trBgWhite"><td class="number14">1,4</td><td class="number14 tdAlignR">27.50</td></tr><tr class="trBgWhite"><td class="number14">1,14</td><td class="number14 tdAlignR">88.00</td></tr><tr class="trBgGrey1"><td rowspan="1">三重彩</td><td class="number14">4,14,1</td><td class="number14 tdAlignR">816.00</td></tr><tr class="trBgWhite"><td rowspan="1">單T</td><td class="number14">1,4,14</td><td class="number14 tdAlignR">175.00</td></tr><tr class="trBgGrey1"><td rowspan="1">四連環</td><td class="number14">1,4,6,14</td><td class="number14 tdAlignR">380.00</td></tr><tr class="trBgWhite"><td rowspan="1">四重彩</td><td class="number14">4,14,1,6</td><td class="number14 tdAlignR">5,982.00</td></tr></table></td><td>
+
+<script language="javascript">
+    function pop_window(url_location) {
+        Welcome = window.top.open(url_location, 'Welcome', 'width=790,height=710,status=0,location=0,titlebar=0,directories=0,menubar=0,resizable=1,scrollbars=yes,screenX=150,screenY=100');
+    }
+</script>
+
+<div class="rowDivLeft">
+    &nbsp;&nbsp;&nbsp;&nbsp;</div>
+<div class="rowDivLeft">
+    <table cellpadding="0" cellspacing="1" class="tableBorder0 trBgBlue" width="250px">
+        <tr>
+            <td class="trBgBlue1 boldFont14 color_white">
+                賽事沿途走位圖片
+            </td>
+        </tr>
+        <tr>
+            <td bgcolor="#ffffff">
+                <a href="javascript:pop_window('http://www.hkjc.com/chinese/racing/finishphoto.asp?racedate=20150712R1_L.jpg');"><img src="/racing/content/Images/RaceResult/20150712R1_S.jpg" border="0" style="cursor:hand" /></a>
+                <br />
+                <table border="0" width="100%">
+                    <tr>
+                        <td align="right" width="37%" class="font13">
+                            <img src="/racing/Info/StaticFile/Images/Racing/red-arrow.gif" border="0" /><a href="http://www.hkjc.com/chinese/racing/corunning.asp?raceno=1&amp;date=20150712" border="0">沿途走勢評述</a>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</div>
+</td></tr></table></div>
+<div class="clearDivFloat rodDiv5">
+    &nbsp;&nbsp;</div>
+<div class="clearDivFloat">
+    <table class="tableBorder trBgBlue" cellspacing="0" cellpadding="1" width="710">
+        <tr>
+            <td width="545" class="boldFont14 color_white">
+                競賽事件報告
+            </td>
+        </tr>
+        <tr>
+            <td class="lineH18 padding trBgBlue2">
+                「蜚聲國際」於七月十一日被小組按照獸醫意見（左前足不良於行）著令退出，並由後備馬匹「大埔福星」（蘇狄雄）補上。「蜚聲國際」必須通過獸醫檢驗後，才可再次出賽。
+在前往閘廂時，蔡明紹被「精彩時機」拋下。「精彩時機」跑了一段短途程後被捉回，抵達起步點後接受獸醫檢查，獸醫認為該駒適宜出賽。馬會醫生亦認為蔡明紹適宜履行餘下賽事的策騎聘約。
+「赤驥」出閘笨拙，因而失地。
+「電訊太子」出閘笨拙，向內斜跑，在「團圓飛舞」後蹄外側處於窘境。
+「好球」與「旅遊大師」躍出時互相碰撞。
+「精彩時機」自大外檔出閘後於早段在馬群之後切入。
+跑過千五米處時，「自動導航」靠近「大埔福星」的後蹄處於窘境。
+過了千二米處後，受催策以圖保持位置的「大埔福星」靠近「電訊太子」（郭能）的後蹄處於窘境，當時「電訊太子」在尚未充分帶離下向內移入。小組告誡郭能，日後必須確保已足夠帶離後才可轉換跑線。
+過了千一米處後，「赤驥」在外疊競跑，沒有遮擋。
+接近九百五十米處時，「開心凱旋」被「旅遊大師」碰撞，當時「旅遊大師」在難以穩定走勢之際自行推進至「開心凱旋」與「董事長」之間緊迫競跑。
+跑過七百五十米處時，「精彩時機」開始搶口，向外斜跑避開「好球」的後蹄。其後，「精彩時機」在外疊競跑，沒有遮擋。
+	接近六百五十米處時，「自動導航」被「電訊太子」碰撞後失去平衡，當時「電訊太子」推進至「開心凱旋」與「自動導航」之間緊迫競跑。
+	四百米處，「開心凱旋」被「電訊太子」碰撞，當時「電訊太子」推進至「赤驥」內側。其後在一段途程上，「開心凱旋」受困而未能望空，跑過三百米處時收慢避開「電訊太子」的後蹄，當時「電訊太子」起初在「有智者」與「赤驥」之間緊迫競跑之際受妨礙，繼而在「赤驥」內側緊迫競跑時將頭轉側及向內斜跑，而「赤驥」亦在「自動導航」內側緊迫競跑。由於此宗事件由多個因素造成，因此小組不採取進一步行動。
+	「旅遊大師」自三百米處至二百米處嚴重受困而未能望空。
+	「醒少少」受困而未能望空直至趨近二百米處。
+	過了一百米處後，「精彩時機」向著外側的「團圓飛舞」的後蹄斜跑。
+	「團圓飛舞」及「精彩時機」均須抽取樣本檢驗。
+            </td>
+        </tr>
+    </table>
+</div>
+
+<div class="clearDivFloat rodDiv5">
+    &nbsp;&nbsp;</div>
+<div class="clearDivFloat">
+    <table cellspacing="1" cellpadding="2" width="710" class="trBgGrey3">
+        <tr valign="middle">
+            <td colspan="2" class="tdBgGrer4" height="2">
+            </td>
+        </tr>
+        <tr valign="middle" class="trBgBlue3">
+            <td height="26px" align="center" colspan="2" class="boldFont14">
+                <span color="black">
+                    勝出馬匹血統
+                </span>
+            </td>
+        </tr>
+        
+        <tr valign="middle" class="trBgWhite">
+            <td width="27%" align="center" class="trBgGrey">
+                <a href="http://www.hkjc.com/chinese/racing/horse.asp?horseno=M327" Class="font13 color_blue">團圓飛舞</a>
+            </td>
+            <td width="73%" class="font13 fontStyle">
+                <span class="number15">
+                    父系: Encosta de Lago
+                    <br />
+                    母系: Succeeding
+                </span>
+            </td>
+        </tr>
+        
+        <tr valign="middle">
+            <td colspan="2" class="tdBgGrer4" height="2">
+            </td>
+        </tr>
+    </table>
+</div>
+<div Class="clearDivFloat rowDiv15">若獲中之彩金為每十元一注超過五百萬元，所有中彩彩票持票人士或經由電話投注服務的中彩人士，包括使用智財咭、1886電話投注自動服務系統等，請於指定時間致電本會1817登記。(使用互動投注服務途徑除外)
+<br /><br />
+互動投注服務包括網上投注服務「投注區」、流動投注服務、Racing Touch流動應用程式、電訊運財寶豪華版/電訊運財寶綜合版及第八代投注寶。</div><div class="rowDiv15" />備註:<br>模擬鳥瞰重溫由特約供應商 Trakus提供，供馬迷作個人娛樂資訊之用。但由於香港馬場內手機信號頻繁，因此Trakus系統有可能受干擾而令模擬鳥瞰重溫片段出現偏差。本會已盡一切努力務求有關資料盡可能準確，馬會就此並無責任。至於賽馬結果, 馬迷應參考實際的賽馬片段為準。</div>
+</div>
+
+    </div><div class="shadowR"></div></div>
+<div class="rowDiv15">&nbsp;</div>
+<script language="javascript" type="text/javascript">
+
+function getURLType() {
+    var url = window.location;
+    var localPattern = /racing\/info/i;
+    var overseaPattern = /racing\/overseas/i;
+    if (localPattern.test(url)) {
+        return "local";
+    }
+    else if (overseaPattern.test(url)) {
+        return "overseas";
+    }
+    else {
+        return "na";
+    }
+}
+
+document.write('' + 
+'<div id="seo" class="fiveCol">' +
+'<div class="content clearfix">' +
+'<dl>' +
+'<dt>賽事資料</dt>' +
+'<dd>' +
+'<a href="http://' + jsJCRWDomainIP + '/racing/Info/meeting/Entries/Chinese/" target="_self">報名表</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCRWDomainIP + '/racing/Info/meeting/Racecard/Chinese/" target="_self">排位表(本地)</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://bet.hkjc.com/default.aspx?url=/racing/pages/odds_wp.aspx&lang=ch&langRedirect=true&dv=' + getURLType() + '" target="_blank">即時賠率</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCRWDomainIP + '/racing/Info/meeting/Results/Chinese/" target="_self">賽果及派彩</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCRWDomainIP + '/racing/Info/meeting/JockeysRides/Chinese/" target="_self">騎師分場表</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCRWDomainIP + '/racing/Info/meeting/TrainerEntry/Chinese/" target="_self">練馬師分場表</a>' +
+'</dd>' +
+'</dl>' +
+'<div></div>' +
+'<dl>' +
+'<dt>賽馬消息及資訊</dt>' +
+'<dd>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/corporate/racing_news.asp" target="_self">賽馬消息</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/corporate/racing_news_archive.asp" target="_self">賽馬新聞資料庫</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/racinginfo/key_races.asp" target="_self">主要賽事</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/racing/selecthorse.asp" target="_self">馬匹資料</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCRWDomainIP + '/racing/Info/Jockey/Ranking/Chinese/" target="_self">騎師資料</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCRWDomainIP + '/racing/Info/Trainer/Ranking/Chinese/" target="_self">練馬師資料</a>' +
+'</dd>' +
+'</dl>' +
+'<div></div>' +
+'<dl>' +
+'<dt>分析工具</dt>' +
+'<dd>' +
+'<a href="javascript:openPowerFiguresBottomLink()">數字能量</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/formguide/formguide.asp" target="_blank">速勢系統</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/tipsindex/tips_index.asp" target="_blank">貼士指數</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCEWDomainIP + '/easyform/popIndex.asp?lang=tc" target="_blank">智易表</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/racinginfo/newhorse.asp" target="_self">初出馬介紹</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCRWDomainIP + '/racing/Info/meeting/AllUpCalculator/Chinese/" target="_blank">過關計算機</a>' +
+'</dd>' +
+'</dl>' +
+'<div></div>' +
+'<dl>' +
+'<dt>視聽播放區</dt>' +
+'<dd>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/press/live.asp" target="_self">賽日收音機</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/press/showcase.asp" target="_self">網上重溫</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/press/btrs.asp" target="_self">試閘片段</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/racinginfo/04_ppo_footage.asp" target="_self">自購馬來港前賽事片段</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCEWDomainIP + '/chinese/press/sc_host_tips.asp" target="_self">主持有料到</a>' +
+'</dd>' +
+'</dl>' +
+'<div></div>' +
+'<dl>' +
+'<dt>實用資訊</dt>' +
+'<dd>' +
+'<a href="http://' + jsJCRWDomainIP + '/racing/Info/meeting/Summary/chinese/" target="_self">賽馬日一般資訊</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCRWDomainIP + '/racing/Info/meeting/Draw/chinese/" target="_self">檔位統計</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://' + jsJCRWDomainIP + '/racing/Info/meeting/JkcStat/chinese/" target="_self">騎師王統計</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://special.hkjc.com/racing/info/ch/betting/guide-flexibet-index.asp" target="_blank">靈活玩</a>' +
+'</dd>' +
+'<dd>' +
+'<a href="http://mcs.hkjc.com/" target="_blank">傳媒專用區</a>' +
+'</dd>' +
+'</dl>' +
+'</div>' +
+'</div>');
+</script>
+<div id="footer"><div class="rgp"><img src="../../../GlobalMenu/chinese/images/rgp_text_chi_970.gif" usemap="#RGP_970c" /> <!--
+<div class="ifha"></div>
+--></div>
+<map name="RGP_970c" id="RGP_970c">
+    <area shape="rect" coords="900,2,968,43" href="http://corporate.hkjc.com/corporate/rgp/chinese/index.aspx" target="_self" />
+</map>
+<div class="nav clearfix">
+<div class="content">
+<script language="javascript" type="text/jscript">
+    var footer = "<a class=\"first\" href=\"http://" + jsJCEWDomainIP + "/chinese/corporate/faq.asp\" target=\"_blank\);\">常見問題</a> " +
+    "| <a href=\"javascript:NewWindow('http://special.hkjc.com/infomenu/ch/contact/feedback.asp','mypopup','770','550','yes','yes');\">聯絡我們</a> " +
+    "| <a href=\"javascript:NewWindow('http://mcs.hkjc.com/','mypopup','770','550','yes','yes');\">傳媒專用區 </a>" +
+    "| <a href=\"http://" + jsJCEWDomainIP + "/chinese/corporate/corp_sitemap.asp\">網頁指南</a> " +
+    "| <a href=\"javascript:NewWindow('http://" + jsJCEWDomainIP + "/chinese/betting/betting_rule.htm','mypopup','770','550','yes','yes');\">規例</a> " +
+    "| <a href=\"http://" + jsJCEWDomainIP + "/chinese/corporate/corp_rgpolicy_generic.asp\">提倡有節制博彩</a> " +
+    "| <a href=\"http://" + jsJCEWDomainIP + "/chinese/corporate/corp_privacy.asp\">私隱條款</a> " +
+    "| <a href=\"http://" + jsJCEWDomainIP + "/chinese/corporate/corp_disclaimer.asp\">免責聲明</a><br />";
+    document.write(footer);
+</script>
+</div>
+<div class="copyright">版權所有 不得轉載 &copy; 2000-2010 香港賽馬會</div>
+</div></div><script src="//common.hkjc.com/wa/wa_tracker.js" type="text/javascript"></script><script src="//common.hkjc.com/wa/wa_tracker_config.js" type="text/javascript"></script>
+<script type="text/javascript">
+    if (PageIsReady) { //Page is Ready from Site.Master
+        try {
+            WATracker.trackPageView('racing-content');
+        } catch (e) { } 
+    }
+</script>
+</body>
+</html>
