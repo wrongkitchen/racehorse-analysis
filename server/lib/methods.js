@@ -29,10 +29,13 @@ Meteor.methods({
 		var totalRace = 0;
 		var dateSplit = date.split('/');
 		var dateString = dateSplit[2] + dateSplit[1] + dateSplit[0];
-		var storagePath = '/Users/wongkinchun/Desktop/hkjc/';
+		var storagePath = '/Users/sc17temp/Desktop/hkjc/';
 		var htmlArray = [];
 
 		console.log('Start download files');
+		console.log('URL - ' + prefix);
+		console.log('Date - ' + dateString);
+		console.log('Save to - ' + storagePath + dateString);
 
 		var looper = Meteor.setInterval(function(){
 			
@@ -41,7 +44,9 @@ Meteor.methods({
 			var body = result.body;
 	        var $ = cheerio.load(body);
 	        var isContentExist = $('.raceNum td a').length > 0;
+
 	        console.log(isContentExist);
+	        
 	        if(isContentExist){
 		        if(!totalRace) totalRace = $('.raceNum td a').length;
 		        var path = storagePath + dateString + '/race_'+ counter +'.html';
@@ -55,14 +60,16 @@ Meteor.methods({
 	        if(timeoutCounter > 50){
 	        	console.log('Request timeout');
 		        Meteor.clearInterval(looper);
-				var raceRecordID = RacingsRawData.insert({
-					date: date,
-					url: url,
-					totalRace: counter,
-					htmlRecord: htmlArray
-				});
+		        if(htmlArray.length > 0){
+					var raceRecordID = RacingsRawData.insert({
+						date: date,
+						url: url,
+						totalRace: counter,
+						htmlRecord: htmlArray
+					});
+		        }
 	        }
-		}, 2000);
+		}, 10000);
 
 		return true;
 	}
